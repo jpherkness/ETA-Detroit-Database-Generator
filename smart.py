@@ -24,7 +24,7 @@ def load_smart_data():
         route_number = route_id
         route_name = route["Text"].replace(route["Value"] + " - ", "")
 
-        print("IMPORTING ROUTE:", route_name, "(", route_number, ")")
+        print("IMPORTING ROUTE:", route_name, "(" + route_number + ")")
 
         # Get both possible directions for the route
         direction_request = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getdirectionbyroute&routeid=" + route_id).json()
@@ -48,7 +48,8 @@ def load_smart_data():
 
 def load_stop_orders(stop_day, day_code, direction, route_id):
     stops_request = requests.get("http://www.smartbus.org/DesktopModules/SMART.Schedules/ScheduleService.ashx?route="+ route_id +"&scheduleday="+ day_code +"&direction="+ direction).json()
-
+    # sorts stops by name
+    # stops_request = sorted(stops_request, key=lambda stop: stop["Name"])
     stop_order = 1
     for stop in stops_request:
         database.insert_stop_order("SmartBus", route_id, direction, None, stop["Name"], stop_order, stop_day)

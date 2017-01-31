@@ -1,7 +1,7 @@
 import sqlite3
 
 def connect():
-    return sqlite3.connect("ETADetroitDatabase.db")
+    return sqlite3.connect("out/ETADetroitDatabase.db")
 
 def setupDatabase():
     connection = connect()
