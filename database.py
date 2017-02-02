@@ -1,7 +1,9 @@
 import sqlite3
-import fb
+import os
 
 def connect():
+    if not os.path.exists("out"):
+        os.makedirs("out")
     return sqlite3.connect("out/ETADetroitDatabase.db")
 
 def setupDatabase():
@@ -29,29 +31,29 @@ def setupDatabase():
              time text)''')
     connection.close()
 
-def insert_route(company, route_id, route_name, route_number, direction1, direction2, days_active):
+def insert_route(route):
     # Insert into SQLite
     connection = connect()
     c = connection.cursor()
-    params = [company, route_id, route_name, route_number, direction1, direction2, days_active]
+    params = [route.company, route.route_id, route.route_name, route.route_number, route.direction1, route.direction2, route.days_active]
     c.execute("INSERT INTO routes VALUES (?,?,?,?,?,?,?)", params)
     connection.commit()
     connection.close()
 
-def insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude):
+def insert_stop_location(stop_location):
     # Insert into SQLite
     connection = connect()
     c = connection.cursor()
-    params = [company, route_id, direction, stop_id, stop_name, latitude, longitude]
+    params = [stop_location.company, stop_location.route_id, stop_location.direction, stop_location.stop_id, stop_location.stop_name, stop_location.latitude, stop_location.longitude]
     c.execute("INSERT INTO stop_locations VALUES (?,?,?,?,?,?,?)", params)
     connection.commit()
     connection.close()
 
-def insert_stop_order(company, route_id, direction, stop_id, stop_name, stop_order, stop_day):
+def insert_stop_order(stop_order):
     # Insert into SQLite
     connection = connect()
     c = connection.cursor()
-    params = [company, route_id, direction, stop_id, stop_name, stop_order, stop_day]
+    params = [stop_order.company, stop_order.route_id, stop_order.direction, stop_order.stop_id, stop_order.stop_name, stop_order.stop_order, stop_order.stop_day]
     c.execute("INSERT INTO stop_orders VALUES (?,?,?,?,?,?,?)", params)
     connection.commit()
     connection.close()

@@ -13,6 +13,7 @@ import database
 import difflib
 import sqlite3
 import fb
+from models import *
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -22,9 +23,11 @@ stop_locations = []
 
 company = "SmartBus"
 
-def load_data():
+def load_data(all_routes, all_stop_orders, all_stop_locations):
     load_smart_data()
-    return (routes, stop_orders, stop_locations)
+    all_routes += routes
+    all_stop_orders += stop_orders
+    all_stop_locations += stop_locations
 
 def load_smart_data():
 
@@ -37,16 +40,10 @@ def load_smart_data():
         route_number = route_id
         route_name = route["Text"].replace(route["Value"] + " - ", "")
 
-        print("IMPORTING ROUTE:", route_name, "(" + route_number + ")")
-
         # Get both possible directions for the route
         direction_request = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getdirectionbyroute&routeid=" + route_id).json()
         direction1 = direction_request[0]
         direction2 = direction_request[1]
-
-        # Load all stop locations for both directions
-        load_all_stops(route_id, direction1)
-        load_all_stops(route_id, direction2)
 
         # Add the days that the route is active
         days = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getservicedaysforschedules&routeid=" + route_id).json()
@@ -55,16 +52,19 @@ def load_smart_data():
             days_array.append(day["Text"])
             load_stop_orders(day["Text"], day["Value"], direction1, route_id)
             load_stop_orders(day["Text"], day["Value"], direction2, route_id)
-        days_string = ",".join(days_array)
+        days_active = ",".join(days_array)
 
-        database.insert_route(company, route_id, route_name, route_number, direction1, direction2, days_string)
-        routes.append({"company": company,
-                      "route_id": route_id,
-                      "route_name": route_name,
-                      "route_number": route_number,
-                      "direction1": direction1,
-                      "direction2": direction2,
-                      "days_string": days_string})
+        # Add the route to the sqlite database and firebase
+        new_route = Route(company, route_id, route_name, route_number, direction1, direction2, days_active)
+        database.insert_route(new_route)
+        routes.append(new_route.__dict__)
+
+        # Load all stop locations for both direction1 and direction2
+        load_all_stops(route_id, direction1)
+        load_all_stops(route_id, direction2)
+
+        print("IMPORTED ROUTE:", route_name, "(" + route_number + ")")
+
 
 def load_stop_orders(stop_day, day_code, direction, route_id):
     stops_request = requests.get("http://www.smartbus.org/DesktopModules/SMART.Schedules/ScheduleService.ashx?route="+ route_id +"&scheduleday="+ day_code +"&direction="+ direction).json()
@@ -72,32 +72,31 @@ def load_stop_orders(stop_day, day_code, direction, route_id):
     # stops_request = sorted(stops_request, key=lambda stop: stop["Name"])
     stop_order = 1
     for stop in stops_request:
+        # set derived stop properties
         stop_name = stop["Name"]
-        database.insert_stop_order(company, route_id, direction, None, stop_name, stop_order, stop_day)
-        stop_orders.append({"company": company,
-                           "route_id": route_id,
-                           "direction": direction,
-                           "stop_id": None,
-                           "stop_name": stop_name,
-                           "stop_order": stop_order,
-                           "stop_day": stop_day})
+
+        # Add the stop order
+        new_stop_order = StopOrder(company, route_id, direction, None, stop_name, stop_order, stop_day)
+        database.insert_stop_order(new_stop_order)
+        stop_orders.append(new_stop_order.__dict__)
+
+        # Update the stop order counter
         stop_order = stop_order + 1
 
 def load_all_stops(route_id, direction):
     stops_request = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getstopsbyrouteanddirection&routeid=" + route_id + "&d=" + direction).json()
     for stop in stops_request:
+        # Set derived stop properties
         stop_id = stop["StopId"]
         stop_name = stop["Name"]
         latitude = stop["Latitude"]
         longitude = stop["Longitude"]
-        database.insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude)
-        stop_locations.append({"company": company,
-                               "route_id": route_id,
-                               "direction": direction,
-                               "stop_id": stop_id,
-                               "stop_name": stop_name,
-                               "latitude": latitude,
-                               "longitude": longitude})
+
+        # Add the stop location
+        new_stop_location = StopLocation(company, route_id, direction, stop_id, stop_name, latitude, longitude)
+        database.insert_stop_location(new_stop_location)
+        stop_locations.append(new_stop_location.__dict__)
+
 # Creates a csv file with the contents of the array at the specified file path
 def export_array_to_csv(array, file_name):
     with open(file_name, "w") as f:
