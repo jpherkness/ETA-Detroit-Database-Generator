@@ -3,6 +3,15 @@ import sqlite3
 
 reflex_database = sqlite3.connect("in/reflex.db")
 
+routes = []
+stop_orders = []
+stop_locations = []
+company = "RefLex"
+
+def load_data():
+    load_reflex_data()
+    return (routes,stop_orders,stop_locations)
+
 def load_reflex_data():
     print("*************************************************************")
     print("**********    IMPORTING REFLEX ROUTES AND STOPS    **********")
@@ -17,6 +26,14 @@ def load_reflex_data():
         direction1 = route[4]
         direction2 = route[5]
         days_active = route[6]
+
+        routes.append({"company":company,
+                       "route_id":route_id,
+                       "route_number":route_number,
+                       "route_name":route_name,
+                       "direction1":direction1,
+                       "direction2":direction2,
+                       "days_active":days_active})
 
         print("IMPORTING ROUTE:", route_name, "(" + route_number + ")")
 
@@ -40,8 +57,26 @@ def load_stops(route_id, direction, days_active):
         latitude = stop[6]
         longitude = stop[7]
         stop_order = stop[8]
+        
 
         database.insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude)
         database.insert_stop_order(company, route_id, direction, stop_id, stop_name, order, days_active)
         # TODO: The day above might need to be derived from the route.
+        
+        stop_orders.append({"company": company,
+                           "route_id": route_id,
+                           "direction": direction,
+                           "stop_id": stop_id,
+                           "stop_name": stop_name,
+                           "stop_order": order,
+                           "stop_day": days_active})
+        stop_locations.append({"company": company,
+                               "route_id": route_id,
+                               "direction": direction,
+                               "stop_id": stop_id,
+                               "stop_name": stop_name,
+                               "latitude": latitude,
+                               "longitude": longitude})
         order = order + 1
+
+        
