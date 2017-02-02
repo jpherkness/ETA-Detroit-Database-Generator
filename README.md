@@ -10,7 +10,7 @@ To setup and use this project, follow the steps below:
 2. Make sure the updated DDOT sqlite database is placed into the projects root directory and named `ddot.db`
 3. Run `sudo pip3 install requests`
 4. Run `sudo pip3 install python-firebase`
-4. Run `python3 runme.py`
+5. Run `python3 runme.py`
 
 The result will be a sqlite database called `ETADetroitDatabase.db` inside the projects root directory
 

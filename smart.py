@@ -16,13 +16,23 @@ import fb
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
+routes = []
+stop_orders = []
+stop_locations = []
+
+company = "SmartBus"
+
+def load_data():
+    load_smart_data()
+    return (routes, stop_orders, stop_locations)
+
 def load_smart_data():
+
     print("*************************************************************")
     print("**********   IMPORTING SMARTBUS ROUTES AND STOPS   **********")
     print("*************************************************************")
     routes_request = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getroutesforselect").json()
     for route in routes_request:
-
         route_id = route["Value"]
         route_number = route_id
         route_name = route["Text"].replace(route["Value"] + " - ", "")
@@ -47,32 +57,47 @@ def load_smart_data():
             load_stop_orders(day["Text"], day["Value"], direction2, route_id)
         days_string = ",".join(days_array)
 
-        database.insert_route("SmartBus", route_id, route_name, route_number, direction1, direction2, days_string)
-        
+        database.insert_route(company, route_id, route_name, route_number, direction1, direction2, days_string)
+        routes.append({"company": company,
+                      "route_id": route_id,
+                      "route_name": route_name,
+                      "route_number": route_number,
+                      "direction1": direction1,
+                      "direction2": direction2,
+                      "days_string": days_string})
+
 def load_stop_orders(stop_day, day_code, direction, route_id):
     stops_request = requests.get("http://www.smartbus.org/DesktopModules/SMART.Schedules/ScheduleService.ashx?route="+ route_id +"&scheduleday="+ day_code +"&direction="+ direction).json()
     # sorts stops by name
     # stops_request = sorted(stops_request, key=lambda stop: stop["Name"])
     stop_order = 1
     for stop in stops_request:
-        database.insert_stop_order("SmartBus", route_id, direction, None, stop["Name"], stop_order, stop_day)
-        # TODO: Add this information to the stop_schedules table
-        for time in stop["Times"]:
-            if time["Time"] != "":
-                stop_name = stop["Name"]
-                direction = direction
-                route_id = route_id
-                day = stop_day
-                time = time["Time"]
-                company = "SmartBus"
-
+        stop_name = stop["Name"]
+        database.insert_stop_order(company, route_id, direction, None, stop_name, stop_order, stop_day)
+        stop_orders.append({"company": company,
+                           "route_id": route_id,
+                           "direction": direction,
+                           "stop_id": None,
+                           "stop_name": stop_name,
+                           "stop_order": stop_order,
+                           "stop_day": stop_day})
         stop_order = stop_order + 1
 
 def load_all_stops(route_id, direction):
     stops_request = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getstopsbyrouteanddirection&routeid=" + route_id + "&d=" + direction).json()
     for stop in stops_request:
-        database.insert_stop_location("SmartBus", route_id, direction, stop["StopId"], stop["Name"], stop["Latitude"], stop["Longitude"])
-
+        stop_id = stop["StopId"]
+        stop_name = stop["Name"]
+        latitude = stop["Latitude"]
+        longitude = stop["Longitude"]
+        database.insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude)
+        stop_locations.append({"company": company,
+                               "route_id": route_id,
+                               "direction": direction,
+                               "stop_id": stop_id,
+                               "stop_name": stop_name,
+                               "latitude": latitude,
+                               "longitude": longitude})
 # Creates a csv file with the contents of the array at the specified file path
 def export_array_to_csv(array, file_name):
     with open(file_name, "w") as f:
