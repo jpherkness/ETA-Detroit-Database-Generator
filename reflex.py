@@ -37,8 +37,8 @@ def load_stops(route_id, direction, days_active):
         stop_id = stop[3]
         stop_number = stop[4]
         stop_name = stop[5]
-        longitude = stop[6]
-        latitude = stop[7]
+        latitude = stop[6]
+        longitude = stop[7]
         stop_order = stop[8]
 
         database.insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude)

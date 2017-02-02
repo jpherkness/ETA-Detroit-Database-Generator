@@ -10,6 +10,9 @@ import csv
 import requests
 import os
 import database
+import difflib
+import sqlite3
+import fb
 
 current_path = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,6 +34,10 @@ def load_smart_data():
         direction1 = direction_request[0]
         direction2 = direction_request[1]
 
+        # Load all stop locations for both directions
+        load_all_stops(route_id, direction1)
+        load_all_stops(route_id, direction2)
+
         # Add the days that the route is active
         days = requests.get("http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getservicedaysforschedules&routeid=" + route_id).json()
         days_array = []
@@ -41,11 +48,7 @@ def load_smart_data():
         days_string = ",".join(days_array)
 
         database.insert_route("SmartBus", route_id, route_name, route_number, direction1, direction2, days_string)
-
-        # Load all stop locations for both directions
-        load_all_stops(route_id, direction1)
-        load_all_stops(route_id, direction2)
-
+        
 def load_stop_orders(stop_day, day_code, direction, route_id):
     stops_request = requests.get("http://www.smartbus.org/DesktopModules/SMART.Schedules/ScheduleService.ashx?route="+ route_id +"&scheduleday="+ day_code +"&direction="+ direction).json()
     # sorts stops by name
@@ -53,7 +56,6 @@ def load_stop_orders(stop_day, day_code, direction, route_id):
     stop_order = 1
     for stop in stops_request:
         database.insert_stop_order("SmartBus", route_id, direction, None, stop["Name"], stop_order, stop_day)
-
         # TODO: Add this information to the stop_schedules table
         for time in stop["Times"]:
             if time["Time"] != "":
@@ -94,6 +96,32 @@ def export_array_to_csv(array, file_name):
 
         print("EXPORTED:", current_path + "/" + file_name)
 
+def update_smart_stop_ids():
+    connection = database.connect()
+    c = connection.cursor()
+    for stop in c.execute('select * from stop_orders'):
+        get_matching_stop_id_within_bounds(stop[1], stop[2], stop[4])
+
+def get_matching_stop_id_within_bounds(route_id, direction, stop_name):
+    connection = database.connect()
+    c = connection.cursor()
+    #search_name = "".join(sorted(stop_name.replace("&", "+"))).lstrip()
+    search_name = "".join(sorted(stop_name.replace("+", "&").split(" "))).replace(" ", "")
+    current_best_delta = 0
+    current_best_name = ""
+    current_best_stop_id = None
+
+    for location in c.execute('select * from stop_locations'):
+        original_name = location[4]
+        match_name = "".join(sorted(original_name.split(" "))).replace(" ", "")
+        delta = difflib.SequenceMatcher(None, search_name, match_name).ratio()
+        #print("       ", search_name, match_name, delta)
+        if delta > current_best_delta:
+            current_best_delta = delta
+            current_best_name = original_name
+            current_best_stop_id = location[3]
+
+    print(stop_name.ljust(30), "->" , current_best_name.ljust(30),current_best_stop_id.ljust(30), current_best_delta)
 
 # All routes can be found here:
 # http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getroutesforselect
@@ -113,7 +141,6 @@ def export_array_to_csv(array, file_name):
 #
 # A detailed description of a route can be found here:
 # http://www.smartbus.org/desktopmodules/SMART.Endpoint/Proxy.ashx?method=getroutebyid&routeid=140
-#
 #
 #
 # Questions

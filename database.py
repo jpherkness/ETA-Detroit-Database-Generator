@@ -1,4 +1,5 @@
 import sqlite3
+import fb
 
 def connect():
     return sqlite3.connect("out/ETADetroitDatabase.db")
@@ -29,6 +30,10 @@ def setupDatabase():
     connection.close()
 
 def insert_route(company, route_id, route_name, route_number, direction1, direction2, days_active):
+    # Insert into Firebase
+    fb.insert_route(company, route_id, route_name, route_number, direction1, direction2, days_active)
+
+    # Insert into SQLite
     connection = connect()
     c = connection.cursor()
     params = [company, route_id, route_name, route_number, direction1, direction2, days_active]
@@ -37,6 +42,10 @@ def insert_route(company, route_id, route_name, route_number, direction1, direct
     connection.close()
 
 def insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude):
+    # Insert into Firebase
+    fb.insert_stop_location(company, route_id, direction, stop_id, stop_name, latitude, longitude)
+
+    # Insert into SQLite
     connection = connect()
     c = connection.cursor()
     params = [company, route_id, direction, stop_id, stop_name, latitude, longitude]
@@ -45,6 +54,10 @@ def insert_stop_location(company, route_id, direction, stop_id, stop_name, latit
     connection.close()
 
 def insert_stop_order(company, route_id, direction, stop_id, stop_name, stop_order, stop_day):
+    # Insert into Firebase
+    fb.insert_stop_order(company, route_id, direction, stop_id, stop_name, stop_order, stop_day)
+
+    # Insert into SQLite
     connection = connect()
     c = connection.cursor()
     params = [company, route_id, direction, stop_id, stop_name, stop_order, stop_day]

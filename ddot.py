@@ -36,7 +36,6 @@ def load_stops(route_id, direction):
     c = ddot_database.cursor()
     c.execute('''select * from stops where rt=? and dir=?''', [route_id, direction])
     stops = c.fetchall()
-    #print(stops)
     stops.sort(key=lambda stop: stop[5])
 
     stop_order = 1
