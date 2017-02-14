@@ -1,5 +1,8 @@
 import database
-import smart
+from smart import Smart
+from ddot import DDOT
+from reflex import Reflex
+from dataset import DataSet
 import ddot
 import reflex
 import os
@@ -10,18 +13,18 @@ current_path = os.path.dirname(os.path.abspath(__file__))
 def main():
     database.setupDatabase()
 
-    all_routes = []
-    all_stop_orders = []
-    all_stop_locations = []
+    data = DataSet()
 
-    smart.load_data(all_routes, all_stop_orders, all_stop_locations)
-    ddot.load_data(all_routes, all_stop_orders, all_stop_locations)
-    reflex.load_data(all_routes, all_stop_orders, all_stop_locations)
 
-    fb.empty_firebase_database()
-    fb.insert_routes(all_routes)
-    fb.insert_stop_orders(all_stop_orders)
-    fb.insert_stop_locations(all_stop_locations)
+    reflex = Reflex(data)
+    smart = Smart(data)
+    ddot = DDOT(data)
+    
+    reflex.load_data() # load reflex first because the others ignore identical routes
+    smart.load_data()
+    ddot.load_data()
+
+    fb.insert_data_set(data)
 
     print("Database saved to", current_path + "/ETADetroitDatabase.db")
 

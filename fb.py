@@ -4,19 +4,21 @@ import requests
 firebase_url = "https://eta-detroit-3f7a4.firebaseio.com/"
 firebase = firebase.FirebaseApplication(firebase_url, None)
 
-def empty_firebase_database():
-    firebase.delete("/routes", None)
-    firebase.delete("/stop_locations", None)
-    firebase.delete("/stop_orders", None)
+# Inserts the data from the DataSet object into the firebase database
+def insert_data_set(data):
+    empty_firebase_database()
 
-def insert_routes(routes):
-    firebase.put("", "routes", routes)
+    firebase.put("", "routes_exp", data.all_routes)
     print("Routes uploaded to firebase:", firebase_url)
 
-def insert_stop_locations(stop_locations):
-    firebase.put("", "stop_locations", stop_locations)
+    firebase.put("", "stop_locations_exp", data.all_stop_locations)
     print("Stop Locations uploaded to firebase:", firebase_url)
 
-def insert_stop_orders(stop_orders):
-    firebase.put("", "stop_orders", stop_orders)
+    firebase.put("", "stop_orders_exp", data.all_stop_orders)
     print("Stop Orders uploaded to firebase:", firebase_url)
+
+# Removes the data from the firebase database
+def empty_firebase_database():
+    firebase.delete("/routes_exp", None)
+    firebase.delete("/stop_locations_exp", None)
+    firebase.delete("/stop_orders_exp", None)
